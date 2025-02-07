@@ -1,0 +1,11 @@
+title: Carlos  # You can add your name here
+
+logo: me.png # Use a relative path to logo image 
+
+description: SRE & Cyber Security # Fix hyphenation 
+
+show_downloads: False # Fix spelling
+
+theme: jekyll-theme-minimal 
+
+email: carlos@sfdmarkets.com # Allow visitors to contact you
