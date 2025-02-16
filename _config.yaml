@@ -9,3 +9,18 @@ show_downloads: False # Fix spelling
 theme: jekyll-theme-minimal 
 
 email: carlos@sfdmarkets.com # Allow visitors to contact you
+
+# These settings control the types of collections used by the template
+collections:
+  teaching:
+    output: true
+    permalink: /:collection/:path/
+  publications:
+    output: true
+    permalink: /:collection/:path/
+  portfolio:
+    output: true
+    permalink: /:collection/:path/
+  talks:
+    output: true
+    permalink: /:collection/:path/
