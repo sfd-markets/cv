@@ -1,0 +1,44 @@
+title: Carlos  # You can add your name here
+
+logo: me.png # Use a relative path to logo image 
+
+description: SRE & Cyber Security # Fix hyphenation 
+
+show_downloads: False # Fix spelling
+
+theme: jekyll-theme-minimal 
+
+email: carlos@sfdmarkets.com # Allow visitors to contact you
+
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-gist
+  - jekyll-paginate
+  - jekyll-sitemap
+  - jekyll-redirect-from
+  - jemoji
+
+# Mimic GitHub Pages with --safe
+whitelist:
+  - jekyll-feed
+  - jekyll-gist
+  - jekyll-paginate
+  - jekyll-sitemap
+  - jekyll-redirect-from
+  - jemoji
+
+# These settings control the types of collections used by the template
+collections:
+  teaching:
+    output: true
+    permalink: /:collection/:path/
+  publications:
+    output: true
+    permalink: /:collection/:path/
+  portfolio:
+    output: true
+    permalink: /:collection/:path/
+  talks:
+    output: true
+    permalink: /:collection/:path/
