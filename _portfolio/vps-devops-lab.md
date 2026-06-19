@@ -2,7 +2,9 @@
 title: "VPS DevOps Practice Lab"
 excerpt: "Hetzner CX53 platform lab — Kind Kubernetes, Vault Helm HA, Terraform hcloud, and Ansible on Debian/AlmaLinux LXC."
 collection: portfolio
-
+redirect_from:
+  - /cv/portfolio/oci-devops-lab/
+  - /portfolio/oci-devops-lab/
 ---
 
 ## Intended Role

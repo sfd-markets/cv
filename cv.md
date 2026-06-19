@@ -2,6 +2,8 @@
 layout: default
 title: Carlos
 permalink: /cv/
+redirect_from:
+  - /cv/cv/
 ---
 
 # Carlos
