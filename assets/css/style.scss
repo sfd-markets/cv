@@ -4,17 +4,29 @@
 @import "{{ site.theme }}";
 
 .wrapper {
-  width:50%
-  // width:1200px;
-  // left side is 270
-  // 1200-270 = 930
-  // 30px free room
-  // margin:0 auto;
+  width: 50%;
 }
 
 section {
-  width:70%;
-  // width:900px;
-  // float:right;
-  // padding-bottom:50px;
+  width: 70%;
+}
+
+.site-nav {
+  margin: 1em 0;
+  display: flex;
+  gap: 0.5em;
+
+  a {
+    padding: 0.35em 0.75em;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.9em;
+
+    &.active {
+      background: #f0f0f0;
+      font-weight: bold;
+      border-color: #ccc;
+    }
+  }
 }
