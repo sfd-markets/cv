@@ -1,4 +1,4 @@
-# Carlos Lopez — Personal Site
+# Carlos — Personal Site
 
 Jekyll site for resume and portfolio, deployed to GitHub Pages.
 
@@ -7,24 +7,15 @@ Jekyll site for resume and portfolio, deployed to GitHub Pages.
 - [Resume](https://sfd-markets.github.io/cv/)
 - [Projects](https://sfd-markets.github.io/portfolio/)
 
-See [GITHUB_PAGES_MIGRATION.md](GITHUB_PAGES_MIGRATION.md) for deployment to the `sfd-markets.github.io` user site.
 
-## Local preview
-
-```bash
-bundle install
-bundle exec jekyll serve
-```
-
-Open `http://localhost:4000/` (landing), `/cv/` (resume), `/portfolio/` (projects).
 
 ## CV content
 
 The resume lives in [`cv.md`](cv.md). This README is a mirror for GitHub repo visitors.
 
-# Carlos Lopez
+# Carlos
 
-Site Reliability Engineer
+Reliability Production Private Cloud Virtualization Infrastructure
 
 ## Summary
 
@@ -32,64 +23,3 @@ Experienced in managing Private Cloud IT operations, implementing automated proc
 
 *Currently building a hands-on VPS cloud platform lab — see [Projects](https://sfd-markets.github.io/portfolio/).*
 
-## Experience
-
-### Morgan Stanley, SRE Private Cloud Virtualization Infrastructure VP — Jan 2022 – Present
-
-- Management of employees, tasks, projects and day-to-day Private Cloud IT operations
-- Contributed to the architecture and deployment of Kubernetes-based system that improved scalability and availability
-- Implemented automated processes to improve efficiency and reliability
-- Adopted Ansible within IT operations and deployed playbooks to reduce TOIL
-- Created Splunk Dashboards used for troubleshooting issues and providing visibility to the different siloed programs and senior management
-- Implemented security measures to protect against cyber threats
-- Led review and implementation of IAM within the Virtualization Operations space; scoped necessary entitlements to administer the Virtual infrastructure Privileged Access Management Environment
-- Conducted and collaborated on regular security audits and vulnerability assessments, in compliance with frameworks such as NIST-800-53 and NIST-800-37
-- Ongoing production of Observability program that correlates and analyzes telemetry metrics taken from our Private Cloud plant to provide stability; used Prometheus and Grafana to identify and illustrate resource constraints and correlate latency in our hyper-converged storage and compute stack
-
-### Morgan Stanley, Core Infrastructure Senior Associate — May 2018 – Dec 2021
-
-Worked on campaign of adopting users from physical machines to virtualized infrastructure.
-
-- Evaluated user requirements and reviewed performance and benchmark metrics of server and application performance
-- Saved 25%+ in data center space and cost reduction; streamlined maintenance for those machines contributing to the cost-cutting effort
-- Ran the encryption program keeping the Virtual Data Center and its components compliant
-- Configured Kubernetes storage using Persistent Volumes and Storage Classes to meet application requirements
-- Server hardening of ESXi Hypervisors and deployment of vAppliances (Proxy, DLP, AV)
-- Developed SLIs and SLOs improving resolution times and monitoring coverage; addressed recurring resource constraints (high CPU utilization, memory contention, I/O bottlenecks) with clear call-to-action definitions, reducing TOIL and realizing significant savings (~30%)
-
-### NTT DATA Services, Information Technology Infrastructure Consultant — May 2015 – May 2018
-
-- Managed and maintained a fleet of Linux servers and hypervisors
-- Led large migration of desktop users to virtual machines, condensing data center space and reducing costs
-- Modernized IT infrastructure by virtualizing storage; with compute and storage under virtualization, improved performance and maximized efficiency for the firm and its customers
-- SME in operations for the compute opportunistic application leveraging the cold side of clusters to maximize full resource inventory of the datacenter
-- Shared research, knowledge, and expertise with Core Infrastructure teams and stakeholders through presentations, reports, and training sessions
-
-### SAP Hybris, NOC Systems Administrator Managed Services — Feb 2013 – May 2015
-
-- Performed system administration tasks including installation, configuration, and maintenance
-- User management, file system administration, and software installation
-- Managed and troubleshooted Linux servers, network devices, and applications
-- Deep dive on RCAs (root cause analysis) using log data and system tools; used strace, Dynatrace, and Wireshark for troubleshooting across compute and application/network layers
-- Supported customer infrastructure running Hybris web CMS application
-- During high-volume events (e.g. Black Friday), identified systems under load and dynamically increased resources to customer environments
-
-## Education
-
-### Concordia University
-
-Bachelor's of Arts — Completed
-
-## Licenses & Certifications
-
-### Certified Cloud Security Professional (CCSP)
-
-ISC2 — Issued Jun 2024
-
-### Offensive Security Certified Professional (OSCP)
-
-OffSec — Issued Sept 2023
-
-### Certified Kubernetes Administrator (CKA)
-
-Linux Foundation — Issued October 2025
