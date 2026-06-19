@@ -4,11 +4,11 @@ description: Production Reliability, Cyber Security & Private Cloud Infrastructu
 show_downloads: false
 
 url: "https://sfd-markets.github.io"
-baseurl: ""
+baseurl: "/cv"
 
 navigation:
   - title: Resume
-    url: /cv/
+    url: /
   - title: Projects
     url: /portfolio/
 
