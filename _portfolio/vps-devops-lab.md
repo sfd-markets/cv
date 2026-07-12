@@ -1,3 +1,9 @@
+---
+title: "VPS DevOps Practice Lab"
+excerpt: "Dual-node Hetzner CX53 lab — Kind, Vault, Terraform, Ansible, FX Signal Lab."
+collection: portfolio
+---
+
 # VPS DevOps Practice Lab — Architecture
 
 This document is the architectural design for a **dual-node Hetzner Cloud practice lab** — a hands-on platform for **Ansible**, **Kubernetes (Kind)**, **HashiCorp Terraform**, **HashiCorp Vault**, **HashiCorp Boundary**, **HashiCorp Consul**, and **HashiCorp Packer**, with a **zero-trust** capability layer and an **immutable infrastructure** pipeline.
@@ -1135,6 +1141,7 @@ Create with: `kind create cluster --name vps-workloads --config kind-config-work
 
 **Vault annotations (fx-fetcher / fx-api):**
 
+{% raw %}
 ```yaml
 vault.hashicorp.com/agent-inject: "true"
 vault.hashicorp.com/role: "fx-lab"
@@ -1144,6 +1151,7 @@ vault.hashicorp.com/agent-inject-template-polygon: |
   export POLYGON_API_KEY="{{ .Data.data.api_key }}"
   {{- end }}
 ```
+{% endraw %}
 
 **PostgreSQL schema (reference):**
 
@@ -1345,6 +1353,7 @@ Both `cx53-identity` and `cx53-workloads` boot from the **same** snapshot. Role-
 
 #### Reference snippets (architecture-level only)
 
+{% raw %}
 ```hcl
 # cx53-lab-base.pkr.hcl — reference only
 source "hcloud" "lab-base" {
@@ -1359,6 +1368,7 @@ source "hcloud" "lab-base" {
 }
 # provisioners: docker, kind, kubectl, helm, ufw, hardening
 ```
+{% endraw %}
 
 ```hcl
 # Terraform — reference only
