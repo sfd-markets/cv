@@ -1,23 +1,23 @@
 ---
 title: "VPS DevOps Practice Lab"
-excerpt: "Dual-node Hetzner CX53 lab — Kind, Vault, Terraform, Ansible, FX Signal Lab."
+excerpt: "Dual-node VPS-Cloud-Service CX53 lab — Kind, Vault, Terraform, Ansible, FX Signal Lab."
 collection: portfolio
 ---
 
 # VPS DevOps Practice Lab — Architecture
 
-This document is the architectural design for a **dual-node Hetzner Cloud practice lab** — a hands-on platform for **Ansible**, **Kubernetes (Kind)**, **HashiCorp Terraform**, **HashiCorp Vault**, **HashiCorp Boundary**, **HashiCorp Consul**, and **HashiCorp Packer**, with a **zero-trust** capability layer and an **immutable infrastructure** pipeline.
+This document is the architectural design for a **dual-node VPS-Cloud-Service practice lab** — a hands-on platform for **Ansible**, **Kubernetes (Kind)**, **HashiCorp Terraform**, **HashiCorp Vault**, **HashiCorp Boundary**, **HashiCorp Consul**, and **HashiCorp Packer**, with a **zero-trust** capability layer and an **immutable infrastructure** pipeline.
 
 The lab's flagship application is **FX Signal Lab** — a forex technical-analysis platform that fetches market data from Polygon.io, runs Volume Spread Analysis (VSA) and Bollinger Band signal logic, persists results, and serves interactive charts via a containerized API behind Ingress.
 
-The lab splits workloads across **two identical CX53 servers** connected via a Hetzner private network. This document describes the **target-state architecture** for the project.
+The lab splits workloads across **two identical CX53 servers** connected via a VPS-Cloud-Service private network. This document describes the **target-state architecture** for the project.
 
 
 | Attribute                  | Value                 |
 | -------------------------- | --------------------- |
 | **Document version**       | v1.1                  |
 | **Status**                 | Target-state design   |
-| **Infrastructure**         | 2× Hetzner Cloud CX53 |
+| **Infrastructure**         | 2× VPS-Cloud-Service CX53 |
 | **Flagship application**   | FX Signal Lab         |
 | **Monthly cost (approx.)** | ~$49.00 USD               |
 
@@ -48,15 +48,15 @@ Sections marked **At a glance** provide a one-sentence summary for readers who d
 
 ## Executive Summary
 
-The VPS DevOps Practice Lab is a self-hosted training platform built on Hetzner Cloud. It supports hands-on practice with Ansible, Kubernetes, HashiCorp Terraform, HashiCorp Vault, HashiCorp Boundary, HashiCorp Consul, and HashiCorp Packer while demonstrating modern **zero-trust** architectural patterns suitable for portfolio and interview discussion.
+The VPS DevOps Practice Lab is a self-hosted training platform built on VPS-Cloud-Service. It supports hands-on practice with Ansible, Kubernetes, HashiCorp Terraform, HashiCorp Vault, HashiCorp Boundary, HashiCorp Consul, and HashiCorp Packer while demonstrating modern **zero-trust** architectural patterns suitable for portfolio and interview discussion.
 
 The lab's **flagship workload** is **FX Signal Lab** — a production-style forex analytics pipeline deployed on the workloads hub. Scheduled jobs fetch 30-minute OHLCV bars from Polygon.io, a batch analyzer computes VSA and Bollinger Band breakout signals, results land on persistent storage and PostgreSQL, and a FastAPI service exposes signals and Plotly charts behind ingress-nginx. The Polygon API key is injected from Vault on the identity hub — never stored in git or plain ConfigMaps.
 
-This design deploys **two identical CX53 virtual servers** (~$24.50 USD/month each, ~$49 USD/month combined) in the same Hetzner region, connected by a **private network**. One server hosts the **identity and trust plane** (secrets, privileged access, service identity); the other hosts **applications and automation** (Kubernetes workloads, Ansible targets). This segregation mirrors production patterns where security-critical services are isolated from application blast radius.
+This design deploys **two identical CX53 virtual servers** (~$24.50 USD/month each, ~$49 USD/month combined) in the same VPS-Cloud-Service region, connected by a **private network**. One server hosts the **identity and trust plane** (secrets, privileged access, service identity); the other hosts **applications and automation** (Kubernetes workloads, Ansible targets). This segregation mirrors production patterns where security-critical services are isolated from application blast radius.
 
 **HashiCorp Vault** provides centralized secrets management and dynamic credential issuance. **HashiCorp Boundary** replaces standing SSH privilege with identity-brokered, auditable sessions to both servers. **HashiCorp Consul** provides service discovery and mTLS micro-segmentation between application components. Together, these three products form a coherent zero-trust story: Vault governs *what credentials exist*, Boundary governs *who may access what*, and Consul governs *which services may communicate*.
 
-**HashiCorp Packer** builds a golden **Hetzner Cloud snapshot** (`cx53-lab-base`) that both CX53 nodes boot from — providing an immutable, repeatable host baseline. This accelerates rebuilds after Ansible break-fix exercises or disaster recovery and eliminates configuration drift between the identity and workloads host foundations. Packer sits upstream of Terraform in the IaC pipeline: Packer creates the image, Terraform provisions servers from it, Helm and Ansible configure day-2 workloads.
+**HashiCorp Packer** builds a golden **VPS-Cloud-Service snapshot** (`cx53-lab-base`) that both CX53 nodes boot from — providing an immutable, repeatable host baseline. This accelerates rebuilds after Ansible break-fix exercises or disaster recovery and eliminates configuration drift between the identity and workloads host foundations. Packer sits upstream of Terraform in the IaC pipeline: Packer creates the image, Terraform provisions servers from it, Helm and Ansible configure day-2 workloads.
 
 This dual-node architecture trades roughly **2× infrastructure cost** for **comfortable resource headroom** (~10–14 GB RAM spare per node at peak), room for a full Consul HA server quorum, and a demonstrable segmented trust domain across identity and workloads planes.
 
@@ -192,7 +192,7 @@ USDCAD
 
 ### Portfolio narrative (interview framing)
 
-> *"I built a dual-node zero-trust lab on Hetzner. FX Signal Lab runs as the flagship app: a CronJob pulls forex data using a Vault-injected API key, a batch Job computes VSA and Bollinger signals, PostgreSQL stores history, and FastAPI serves charts behind Ingress. Admin access is Boundary-brokered; service-to-service traffic uses Consul Connect mTLS."*
+> *"I built a dual-node zero-trust lab on VPS-Cloud-Service. FX Signal Lab runs as the flagship app: a CronJob pulls forex data using a Vault-injected API key, a batch Job computes VSA and Bollinger signals, PostgreSQL stores history, and FastAPI serves charts behind Ingress. Admin access is Boundary-brokered; service-to-service traffic uses Consul Connect mTLS."*
 
 ---
 
@@ -294,14 +294,14 @@ USDCAD
 
 | Principle               | Design choice                                         | Why                                                              |
 | ----------------------- | ----------------------------------------------------- | ---------------------------------------------------------------- |
-| **Topology**            | **2× CX53** + Hetzner private network                 | Each node operates at ~60–70% capacity instead of ~95%           |
+| **Topology**            | **2× CX53** + VPS-Cloud-Service private network                 | Each node operates at ~60–70% capacity instead of ~95%           |
 | **Segregation**         | **Identity hub** vs **workloads hub**                 | Mirrors production: centralized secrets/access, distributed apps |
 | **Kubernetes runtime**  | **Kind** (Docker-backed) on both hosts                | No nested kubelet in LXC; standard Kind (Kubernetes-in-Docker) pattern                  |
 | **Vault placement**     | **Vault HA on identity hub only**                     | Single source of truth; workloads hub consumes remotely          |
 | **Boundary placement**  | **Controller on identity hub; workers on both**       | One admin front door; brokered access to all targets             |
 | **Consul placement**    | **Servers on identity hub; clients on workloads hub** | Service identity spans both nodes via private network            |
 | **Terraform placement** | **On identity hub host** + `hcloud` provider          | Provisions both servers, network, firewalls; avoids split state  |
-| **Image pipeline**      | **Packer** + `hetznercloud/hcloud` builder            | Immutable host baseline; identical starting point for both nodes |
+| **Image pipeline**      | **Packer** + `hcloud` Packer builder            | Immutable host baseline; identical starting point for both nodes |
 | **Ansible layer**       | **3 LXC containers** on workloads hub `lxdbr0`        | Multi-host SSH; Debian + Red Hat target mix for Ansible             |
 | **Host OS**             | **Debian 12 bookworm minimal** on both                | Lean idle footprint; consistent tooling                          |
 | **Admin entry**         | **Boundary-first** on identity hub                    | Zero-trust human access; workloads SSH closed publicly           |
@@ -309,7 +309,7 @@ USDCAD
 | **Application layer**   | **FX Signal Lab** in `fx-lab` namespace               | Portfolio workload — batch fetch, analyze, API, persistent data  |
 
 
-**North-south traffic** (laptop → platform): Boundary API on identity hub; optional direct `kubectl` to either Kind API from `HOME_IP/32`. **Cross-VPS traffic**: Vault, Consul, and Boundary worker ↔ controller on Hetzner private network (`10.48.0.0/16`). **Local east-west**: Kind CNI and `lxdbr0` remain isolated within each host.
+**North-south traffic** (laptop → platform): Boundary API on identity hub; optional direct `kubectl` to either Kind API from `HOME_IP/32`. **Cross-VPS traffic**: Vault, Consul, and Boundary worker ↔ controller on VPS-Cloud-Service private network (`10.48.0.0/16`). **Local east-west**: Kind CNI and `lxdbr0` remain isolated within each host.
 
 ---
 
@@ -320,7 +320,7 @@ USDCAD
 
 | Attribute             | Specification                                                          |
 | --------------------- | ---------------------------------------------------------------------- |
-| **Provider**          | Hetzner Cloud                                                          |
+| **Provider**          | VPS-Cloud-Service                                                          |
 | **Plan**              | **2× CX53** (identical, cost-optimized shared vCPU)                    |
 | **vCPU per node**     | 16 (AMD EPYC, **x86_64**)                                              |
 | **RAM per node**      | 32 GB                                                                  |
@@ -328,7 +328,7 @@ USDCAD
 | **OS**                | **Debian 12 (bookworm) minimal** — netinst, no desktop                 |
 | **Host image source** | Packer snapshot **`cx53-lab-base`**                                    |
 | **Container runtime** | Docker Engine (Kind backend) on both                                   |
-| **Private network**   | Hetzner Cloud Network — `10.48.0.0/16`                                 |
+| **Private network**   | VPS-Cloud-Service private network — `10.48.0.0/16`                                 |
 | **Region**            | Same region for both (`fsn1` or `nbg1`) — required for private routing |
 | **Transfer**          | 20 TB/month per server                                                 |
 | **Monthly cost cap**  | **~$49.00 USD** (2 × ~$24.50 USD)                                              |
@@ -349,7 +349,7 @@ USDCAD
 
 ### Explanation
 
-Two CX53 nodes in the same Hetzner region receive **free private networking** with no cross-region egress charges for lab traffic. Both nodes boot from the same **Packer-built snapshot**; Terraform references the snapshot ID via `var.lab_snapshot_id`. Debian 12 minimal idles **300–700 MB lower** than full Ubuntu Server images. All binaries and container images use **amd64**.
+Two CX53 nodes in the same VPS-Cloud-Service region receive **free private networking** with no cross-region egress charges for lab traffic. Both nodes boot from the same **Packer-built snapshot**; Terraform references the snapshot ID via `var.lab_snapshot_id`. Debian 12 minimal idles **300–700 MB lower** than full Ubuntu Server images. All binaries and container images use **amd64**.
 
 ---
 
@@ -363,13 +363,13 @@ Two CX53 nodes in the same Hetzner region receive **free private networking** wi
 
 ```text
                     ┌── Laptop (WSL) ─────────────────────────────────────────┐
-                    │  packer build → Hetzner snapshot (cx53-lab-base)         │
+                    │  packer build → VPS-Cloud-Service snapshot (cx53-lab-base)         │
                     │  boundary CLI  (primary admin)                           │
                     │  kubectl → workloads:6443  (Kubernetes)                       │
                     │  kubectl → identity:6443   (Vault/Consul admin)          │
                     └──────────────┬──────────────────────────────────────────┘
                                    │
-              Hetzner FW: 9200, 6443 (identity), 6443 (workloads) ← HOME_IP/32
+              VPS-Cloud-Service FW: 9200, 6443 (identity), 6443 (workloads) ← HOME_IP/32
                                    │
          ┌─────────────────────────┴─────────────────────────┐
          │  Terraform launches both CX53 from Packer snapshot │
@@ -411,7 +411,7 @@ flowchart TB
     tfClient[Terraform_optional]
   end
 
-  subgraph hetzner [Hetzner_Cloud]
+  subgraph vps_cloud [VPS_Cloud_Service]
     privateNet[Private_Network_10_48_0_0_16]
     firewall[Cloud_Firewalls]
     hcloudSnapshot[cx53_lab_base_snapshot]
@@ -459,7 +459,7 @@ flowchart TB
   kubectlWL -->|"6443"| cpWL
   kubectlID -->|"6443"| cpID
   tfClient --> terraformHost
-  terraformHost --> hetzner
+  terraformHost --> vps_cloud
 
   bController --> bWorkerWL
   bController --> identity
@@ -594,7 +594,7 @@ flowchart TB
 
 | Stage | Tool | Delivers |
 | :--- | :--- | :--- |
-| **Image build** | Packer | `cx53-lab-base` Hetzner snapshot (Docker, kind, kubectl, helm, UFW baked in) |
+| **Image build** | Packer | `cx53-lab-base` VPS-Cloud-Service snapshot (Docker, kind, kubectl, helm, UFW baked in) |
 | **Infrastructure** | Terraform | 2× CX53 servers, private network, firewalls — booted from snapshot |
 | **Configuration** | Helm + Ansible | Kind clusters, Vault/Boundary/Consul, LXC fleet, FX Signal Lab |
 
@@ -613,7 +613,7 @@ flowchart LR
   subgraph inputs [Inputs]
     homeIP[Home_IP_32]
     sshKeys[SSH_Keys]
-    hcloudToken[HCLOUD_API_Token]
+    cloudApiToken[CLOUD_API_Token]
     packerTemplates[Packer_Templates]
     helmCharts[Helm_Charts]
     ansiblePlaybooks[Ansible_Playbooks]
@@ -648,7 +648,7 @@ flowchart LR
 
   homeIP --> boundaryNS
   homeIP --> kindWL
-  hcloudToken --> terraformHost
+  cloudApiToken --> terraformHost
   packerTemplates --> hcloudSnapshotOut
   helmCharts --> kindID
   helmCharts --> kindWL
@@ -676,10 +676,10 @@ flowchart LR
 
 | Input                       | Entry point                     | Consumed by                  | Purpose                                                              |
 | --------------------------- | ------------------------------- | ---------------------------- | -------------------------------------------------------------------- |
-| **Home IP** `/32`           | Hetzner Firewalls on both nodes | Edge                         | Restricts Boundary, kubectl API, break-glass SSH                     |
+| **Home IP** `/32`           | VPS-Cloud-Service edge firewalls on both nodes | Edge                         | Restricts Boundary, kubectl API, break-glass SSH                     |
 | **SSH keys**                | Boundary sessions → targets     | Hosts, LXC                   | Ephemeral access; no long-lived keys on Ansible targets in target state |
-| `HCLOUD_TOKEN`              | Laptop WSL / identity hub host  | Packer, Terraform, `hcloud` CLI | Builds snapshot and provisions both servers                          |
-| **Packer templates**        | Laptop WSL (`*.pkr.hcl`)        | Packer `hcloud` builder         | Defines golden host image; output is Hetzner snapshot ID              |
+| `CLOUD_API_TOKEN`              | Laptop WSL / identity hub host  | Packer, Terraform, `hcloud` CLI | Builds snapshot and provisions both servers                          |
+| **Packer templates**        | Laptop WSL (`*.pkr.hcl`)        | Packer `hcloud` builder         | Defines golden host image; output is VPS-Cloud-Service snapshot ID              |
 | **Helm charts / manifests** | Both Kind clusters              | Identity + workloads hubs       | Vault, Boundary, Consul, fx-lab                                     |
 | **FX Signal Lab image**     | Container registry              | `fx-fetcher`, `fx-analyzer`, `fx-api` | Application container built from `VPS/fx-lab/` source           |
 | **Polygon.io API key**      | Vault KV on identity hub        | `fx-fetcher`, `fx-api`          | Injected via Vault Agent; never in git or plain ConfigMaps           |
@@ -699,7 +699,7 @@ flowchart LR
 | **Dynamic secrets / certs** | Vault on identity hub    | API keys, DB creds, PKI certs consumed by FX Signal Lab   |
 | **Brokered admin sessions** | Boundary                 | SSH/TCP sessions with audit trail                           |
 | **Service mesh mTLS**       | Consul Connect           | Intentions enforced between `fx-api` and PostgreSQL       |
-| **Hetzner resources**       | Terraform                | 2 servers, private network, firewalls, optional volumes/DNS |
+| **VPS-Cloud-Service resources**       | Terraform                | 2 servers, private network, firewalls, optional volumes/DNS |
 | **Golden host snapshot**    | Packer                   | `cx53-lab-base` snapshot ID consumed by Terraform           |
 | **Configured SSH hosts**    | Ansible on workloads hub | Hardened Debian + AlmaLinux targets                         |
 
@@ -715,7 +715,7 @@ flowchart LR
 
 | Layer                       | CIDR / endpoint            | Host                    | Purpose                                                   |
 | --------------------------- | -------------------------- | ----------------------- | --------------------------------------------------------- |
-| **Hetzner private network** | `10.48.0.0/16`             | Both                    | Cross-VPS Vault, Consul, Boundary worker traffic          |
+| **VPS-Cloud-Service private network** | `10.48.0.0/16`             | Both                    | Cross-VPS Vault, Consul, Boundary worker traffic          |
 | **Identity private IP**     | `10.48.0.10`               | `cx53-identity`         | Stable Vault/Consul/Boundary internal endpoint            |
 | **Workloads private IP**    | `10.48.0.20`               | `cx53-workloads`        | Consul client registration; remote Vault consumer         |
 | **Identity public IP**      | `<IDENTITY_PUBLIC_IP>`     | `cx53-identity`         | Boundary `:9200`, Kind API `:6443`, break-glass SSH `:22` |
@@ -755,7 +755,7 @@ flowchart LR
 
 ### Explanation
 
-Apply Hetzner Cloud Firewall at the **edge** so unwanted traffic never reaches either host. Vault listens on the identity hub private IP (`10.48.0.10:8200`); workloads hub pods reach it only over `10.48.0.0/16`. The `lxdbr0` bridge on the workloads hub stays **separate** from Kind networking.
+Apply VPS-Cloud-Service edge firewall rules so unwanted traffic never reaches either host. Vault listens on the identity hub private IP (`10.48.0.10:8200`); workloads hub pods reach it only over `10.48.0.0/16`. The `lxdbr0` bridge on the workloads hub stays **separate** from Kind networking.
 
 ---
 
@@ -798,7 +798,7 @@ Apply Hetzner Cloud Firewall at the **edge** so unwanted traffic never reaches e
 | **Vault placement**      | **Identity hub only**; remote consumption          |
 | **Boundary / Consul**    | **First-class** components across both nodes       |
 | **Packer golden image**  | **`cx53-lab-base` snapshot + Terraform**           |
-| **Private network**      | **Hetzner** `10.48.0.0/16`                         |
+| **Private network**      | **VPS-Cloud-Service** `10.48.0.0/16`                         |
 | **Admin entry**          | **Boundary-first**                                 |
 | **App entry**            | **ingress-nginx** → `fx-api` (`fx.<lab-domain>`)   |
 | **Monthly cost**         | **~$49 USD**                                       |
@@ -822,8 +822,8 @@ Apply Hetzner Cloud Firewall at the **edge** so unwanted traffic never reaches e
 | **North-south traffic** | Traffic entering or leaving the platform (laptop → server)                                                                   |
 | **East-west traffic**   | Traffic between components inside the platform (pod-to-pod, server-to-server)                                                |
 | **Identity hub**        | `cx53-identity` — hosts Vault, Boundary controller, Consul servers, Terraform                                                |
-| **Packer**              | HashiCorp tool for building machine images from templates; produces the `cx53-lab-base` Hetzner snapshot in this lab         |
-| **Snapshot**            | A point-in-time copy of a Hetzner Cloud server disk; used here as the boot image for both CX53 nodes                          |
+| **Packer**              | HashiCorp tool for building machine images from templates; produces the `cx53-lab-base` VPS-Cloud-Service snapshot in this lab         |
+| **Snapshot**            | A point-in-time copy of a VPS-Cloud-Service server disk; used here as the boot image for both CX53 nodes                          |
 | **FX Signal Lab**       | Flagship forex analytics application — `fx-fetcher`, `fx-analyzer`, `fx-api`, PostgreSQL in `fx-lab` namespace |
 | **Workloads hub**       | `cx53-workloads` — hosts FX Signal Lab, Ansible LXC fleet                                                      |
 | **Zero-trust**          | Security model assuming no implicit trust based on network location; every access request is verified                        |
@@ -1302,7 +1302,7 @@ Sources {
 }
 ```
 
-Consul clients join the LAN gossip pool over the Hetzner private network — simpler than WAN federation for a same-region two-node lab.
+Consul clients join the LAN gossip pool over the VPS-Cloud-Service private network — simpler than WAN federation for a same-region two-node lab.
 
 ---
 
@@ -1331,10 +1331,10 @@ Terraform state stays on `cx53-identity` only. The snapshot ID is produced by Pa
 
 | Attribute | Value |
 | :--- | :--- |
-| **Builder** | `hetznercloud/hcloud` |
+| **Builder** | `hcloud` Packer builder |
 | **Template name** | `cx53-lab-base.pkr.hcl` |
 | **Build location** | Laptop WSL (initial); identity hub (subsequent rebuilds) |
-| **Output** | Hetzner snapshot ID → Terraform variable `lab_snapshot_id` |
+| **Output** | VPS-Cloud-Service snapshot ID → Terraform variable `lab_snapshot_id` |
 | **Rebuild trigger** | OS patch cycle, Docker/kind version bump, baseline hardening change |
 
 #### Snapshot contents (`cx53-lab-base`)
@@ -1481,14 +1481,14 @@ Provides Vault Agent auto-auth, standalone listener, and host-level CLI drills t
 
 | Tool                       | Connection target                    | Purpose                                    |
 | -------------------------- | ------------------------------------ | ------------------------------------------ |
-| **packer**                 | Hetzner API via `HCLOUD_TOKEN`       | Build `cx53-lab-base` snapshot (Phase 0)   |
+| **packer**                 | VPS-Cloud-Service API via `CLOUD_API_TOKEN`       | Build `cx53-lab-base` snapshot (Phase 0)   |
 | **boundary**               | `https://<IDENTITY_PUBLIC_IP>:9200`  | Primary admin — SSH/TCP to both hosts      |
 | **kubectl** (workloads)    | `https://<WORKLOADS_PUBLIC_IP>:6443` | Kubernetes                                 |
 | **kubectl** (identity)     | `https://<IDENTITY_PUBLIC_IP>:6443`  | Vault, Boundary, Consul admin              |
 | **helm**                   | Same endpoints as kubectl            | Chart installs per cluster                 |
 | **ssh** *(break-glass)*    | `cx53-identity` public IP only       | Emergency; workloads SSH disabled publicly |
 | **curl / browser**         | `https://fx.lab.local` or workloads Ingress | FX Signal Lab charts and API           |
-| **Terraform** *(optional)* | Hetzner API from laptop              | Alternative to host-based Terraform        |
+| **Terraform** *(optional)* | VPS-Cloud-Service API from laptop              | Alternative to host-based Terraform        |
 
 
 **Kubeconfig layout:**
@@ -1620,8 +1620,8 @@ Example heterogeneous task pattern:
 
 | Component               | Host          | Type         | RAM (budget) | Primary workloads                    |
 | ----------------------- | ------------- | ------------ | ------------ | ------------------------------------ |
-| **cx53-identity**       | Identity hub  | Hetzner CX53 | 32 GB cap    | Terraform, vault-ops, Kind identity  |
-| **cx53-workloads**      | Workloads hub | Hetzner CX53 | 32 GB cap    | LXD, Boundary worker, Kind workloads |
+| **cx53-identity**       | Identity hub  | VPS-Cloud-Service CX53 | 32 GB cap    | Terraform, vault-ops, Kind identity  |
+| **cx53-workloads**      | Workloads hub | VPS-Cloud-Service CX53 | 32 GB cap    | LXD, Boundary worker, Kind workloads |
 | **kind-identity CP**    | Identity      | Kind node    | 3 GB         | Control plane                        |
 | **kind-identity W1**    | Identity      | Kind node    | 5 GB         | Vault HA, injector, CSI              |
 | **kind-identity W2**    | Identity      | Kind node    | 4 GB         | Boundary, Consul, OIDC               |
@@ -1638,7 +1638,7 @@ Example heterogeneous task pattern:
 | **Boundary controller** | Identity      | K8s / Helm   | 0.5 GB       | Access broker                        |
 | **Boundary workers**    | Both          | host + K8s   | 0.5 GB each  | Session proxy                        |
 | **laptop**              | —             | WSL client   | —            | packer, boundary, kubectl, helm      |
-| **cx53-lab-base snapshot** | Hetzner Cloud | Packer artifact | —       | Golden host image for both CX53 nodes  |
+| **cx53-lab-base snapshot** | VPS-Cloud-Service | Packer artifact | —       | Golden host image for both CX53 nodes  |
 
 
 ---

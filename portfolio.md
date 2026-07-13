@@ -12,4 +12,4 @@ Platform engineering and infrastructure engineering projects I am building to de
 
 ## Featured
 
-- **[VPS DevOps Practice Lab]({{ "/portfolio/vps-devops-lab/" | relative_url }})** — Hetzner CX53 platform: Kind Kubernetes, Vault Helm HA, Terraform hcloud, Ansible on Debian/AlmaLinux LXC, zero-trust edge firewall.
+- **[VPS DevOps Practice Lab]({{ "/portfolio/vps-devops-lab/" | relative_url }})** — VPS-Cloud-Service CX53 platform: Kind Kubernetes, Vault Helm HA, Terraform hcloud, Ansible on Debian/AlmaLinux LXC, zero-trust edge firewall.
