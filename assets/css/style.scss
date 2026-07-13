@@ -11,6 +11,17 @@ section {
   width: 70%;
 }
 
+body.portfolio-doc {
+  .wrapper {
+    width: 90%;
+    max-width: 1200px;
+  }
+
+  section {
+    width: 100%;
+  }
+}
+
 .site-nav {
   margin: 1em 0;
   display: flex;
