@@ -9,7 +9,7 @@ redirect_from:
 
 # Carlos
 
-Reliability Production Private Cloud
+Infrastructure Reliability Engineering Private Cloud
 
 ## Summary
 
@@ -19,7 +19,7 @@ Experienced in managing Private Cloud IT operations, implementing automated proc
 
 ## Experience
 
-### Reliability Production Private Cloud Virtualization Infrastructure VP — Jan 2022 – Present
+### Infrastructure Reliability Engineering Private Cloud Virtualization Infrastructure VP — Jan 2022 – Present
 
 - Management of employees, tasks, projects and day-to-day Private Cloud IT operations
 - Contributed to the architecture and deployment of Kubernetes-based system that improved scalability and availability

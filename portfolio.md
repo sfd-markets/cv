@@ -8,7 +8,7 @@ redirect_from:
 
 # Projects
 
-Platform engineering and infrastructure projects I am building to demonstrate cloud, automation, and reliability skills.
+Platform engineering and infrastructure engineering projects I am building to demonstrate cloud, automation, and reliability skills.
 
 ## Featured
 

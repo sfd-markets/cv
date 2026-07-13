@@ -13,7 +13,7 @@ The resume lives in [`index.md`](index.md). This README is a mirror for GitHub r
 
 # Carlos
 
-Reliability Production Private Cloud Virtualization Infrastructure
+Infrastructure Reliability Engineering Private Cloud
 
 ## Summary
 

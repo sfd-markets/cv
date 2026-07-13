@@ -83,8 +83,6 @@ Old URLs redirect via `jekyll-redirect-from`:
 
 - `/cv/cv/` → `/cv/`
 - `/cv/portfolio/` → `/portfolio/`
-- `/cv/portfolio/oci-devops-lab/` → `/portfolio/vps-devops-lab/`
-- `/portfolio/oci-devops-lab/` → `/portfolio/vps-devops-lab/`
 
 ## Local preview
 
