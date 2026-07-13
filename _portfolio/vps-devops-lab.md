@@ -401,76 +401,112 @@ Two large VPS nodes (32 GB each) in the same VPS-Cloud-Service region receive **
 
 ### Infrastructure flowchart (Mermaid)
 
+#### Overview — provisioning and access
+
 ```mermaid
-flowchart TB
-  subgraph client [Laptop_WSL]
-    packerCLI[packer_CLI]
-    boundaryCLI[boundary_CLI]
-    kubectlWL[kubectl_workloads]
-    kubectlID[kubectl_identity]
-    tfClient[Terraform_optional]
+flowchart LR
+  subgraph laptop [Laptop WSL]
+    packer[Packer]
+    terraform[Terraform]
+    boundary[Boundary CLI]
+    kubectl[kubectl / helm]
   end
 
-  subgraph vps_cloud [VPS_Cloud_Service]
-    privateNet[Private_Network_10_48_0_0_16]
-    firewall[Cloud_Firewalls]
-    hcloudSnapshot[lab_base_snapshot]
+  subgraph cloud [VPS Cloud Service]
+    snap[(lab-base snapshot)]
+    net[Private network 10.48.0.0/16]
+    fw[Edge firewalls]
   end
 
-  subgraph identity [lab_identity_10_48_0_10]
-    terraformHost[Terraform_hcloud]
-    vaultOps[vault_ops_Docker]
+  subgraph idHub [lab-identity]
+    idStack[Vault HA · Boundary controller · Consul · Kind identity]
+  end
 
-    subgraph kindID [Kind_vps_identity]
-      cpID[control_plane]
-      wID1[worker_1_Vault_HA]
-      wID2[worker_2_Boundary_Consul_OIDC]
+  subgraph wlHub [lab-workloads]
+    wlStack[FX Signal Lab · Kind workloads · LXD Ansible]
+  end
+
+  packer --> snap
+  terraform --> snap
+  snap --> idHub
+  snap --> wlHub
+  boundary -->|9200| idHub
+  kubectl -->|6443| idHub
+  kubectl -->|6443| wlHub
+  fw --> idHub
+  fw --> wlHub
+  idHub --- net
+  wlHub --- net
+  idHub -->|secrets 8200| wlHub
+```
+
+#### Hub topology — runtime detail
+
+Scroll horizontally on smaller screens if needed.
+
+```mermaid
+%% wide %%
+flowchart LR
+  subgraph client [Laptop WSL]
+    packerCLI[Packer CLI]
+    boundaryCLI[Boundary CLI]
+    kubectlWL[kubectl workloads]
+    kubectlID[kubectl identity]
+    tfClient[Terraform optional]
+  end
+
+  subgraph cloud [VPS Cloud Service]
+    privateNet[Private network]
+    firewall[Edge firewalls]
+    snapshot[lab-base snapshot]
+  end
+
+  subgraph identity [lab-identity]
+    direction TB
+    terraformHost[Terraform]
+    vaultOps[vault-ops]
+    bController[Boundary controller]
+    consulServers[Consul servers]
+    vaultHA[Vault HA]
+    subgraph kindID [Kind identity cluster]
+      cpID[control-plane]
+      wID1[worker Vault]
+      wID2[worker Boundary Consul]
     end
-
-    bController[Boundary_controller]
-    consulServers[Consul_servers_3x]
-    vaultHA[Vault_HA_3x]
   end
 
-  subgraph workloads [lab_workloads_10_48_0_20]
-    bWorkerWL[Boundary_worker_host]
-    lxd[LXD_lxdbr0]
-
-    subgraph kindWL [Kind_vps_workloads]
-      cpWL[control_plane]
-      wWL1[worker_1_fx_api_pg]
-      wWL2[worker_2_fx_fetch_ingress]
-      wWL3[worker_3_Connect]
+  subgraph workloads [lab-workloads]
+    direction TB
+    bWorkerWL[Boundary worker]
+    subgraph kindWL [Kind workloads cluster]
+      cpWL[control-plane]
+      wWL1[worker fx-api pg]
+      wWL2[worker fx-fetch ingress]
+      wWL3[worker Connect]
     end
-
-    subgraph lxc [Ansible_LXC]
-      ansibleCtrl[ansible_control]
-      targetDeb[ansible_target_1]
-      targetRhel[ansible_target_2]
+    subgraph lxc [LXC Ansible fleet]
+      ansibleCtrl[ansible-control]
+      targetDeb[ansible-target-1]
+      targetRhel[ansible-target-2]
     end
-
-    consulClients[Consul_clients]
-    fxStack[fx_api_postgresql]
+    consulClients[Consul clients]
+    fxStack[FX Signal Lab]
   end
 
-  packerCLI --> hcloudSnapshot
-  terraformHost --> hcloudSnapshot
-  boundaryCLI -->|"9200"| bController
-  kubectlWL -->|"6443"| cpWL
-  kubectlID -->|"6443"| cpID
+  packerCLI --> snapshot
+  terraformHost --> snapshot
+  boundaryCLI --> bController
+  kubectlWL --> cpWL
+  kubectlID --> cpID
   tfClient --> terraformHost
-  terraformHost --> vps_cloud
-
+  terraformHost --> cloud
   bController --> bWorkerWL
-  bController --> identity
-  vaultHA -->|"secrets_8200"| fxStack
-  consulServers -->|"8301_gossip"| consulClients
+  vaultHA -->|secrets| fxStack
+  consulServers --> consulClients
   consulClients --> fxStack
-
-  ansibleCtrl -->|SSH| targetDeb
-  ansibleCtrl -->|SSH| targetRhel
+  ansibleCtrl --> targetDeb
+  ansibleCtrl --> targetRhel
   bWorkerWL --> lxc
-
   identity --- privateNet
   workloads --- privateNet
 ```
