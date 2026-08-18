@@ -33,6 +33,35 @@ Three AMD x86 `VM.Standard.E4.Flex` instances (4 OCPU / 32 GB / 200 GB each) in 
 This split mirrors production thinking: security-critical services stay off the application blast radius, and the Ansible practice fleet stays off application pods.
 
 
+## Application placement
+
+All three nodes are `VM.Standard.E4.Flex` (4 OCPU / 32 GB / 200 GB). User workloads are pinned with `lab.plane=identity|workloads|ansible`; OKD system pods run on every node.
+
+| Application / component | Runs on | What it is |
+| --- | --- | --- |
+| **OKD control plane** (etcd, API, OAuth, SDN, CRI-O) | All three: `oci-identity`, `oci-workloads`, `oci-ansible` | Compact cluster — every node is a schedulable master |
+| **HashiCorp Vault HA** + injector webhook | `oci-identity` | Secrets, PKI, Kubernetes auth, audit; source of `POLYGON_API_KEY` and dynamic DB creds |
+| **vault-ops** | `oci-identity` | Small Deployment for Vault CLI drills without `oc exec` into Vault pods |
+| **HashiCorp Boundary controller** | `oci-identity` | Identity-brokered access control plane (port 9200) |
+| **Keycloak** | `oci-identity` | OIDC IdP for OKD OAuth and Boundary |
+| **istiod** (Service Mesh control) | `oci-identity` | Mesh policies; sidecars live elsewhere |
+| **Terraform** (primary apply + state) | `oci-identity` | Stamps the three Flex instances, VCN, and NSGs; avoids split state. Laptop may also talk to the OCI API, but identity owns state |
+| **GitOps / Argo CD** *(optional)* | `oci-identity` | Desired-state for cluster apps |
+| **fx-fetcher** | `oci-workloads` | CronJob — Polygon.io OHLCV → `fx-data` PVC |
+| **fx-analyzer** | `oci-workloads` | Job — VSA + Bollinger signals → PostgreSQL and Plotly HTML |
+| **fx-api** | `oci-workloads` | FastAPI Deployment behind an OpenShift Route |
+| **PostgreSQL** | `oci-workloads` | Signal history (`signals`, `fetch_runs`) |
+| **Mesh sidecars** (Envoy) | `oci-workloads` (on `fx-api` / PostgreSQL) | mTLS; only `fx-api` may reach the database |
+| **Vault Agent consumers** | `oci-workloads` (`fx-lab` pods) | Inject secrets from identity Vault; injector webhook itself is on identity |
+| **KubeVirt / CDI** | `oci-ansible` | VM-on-Kubernetes; guest disks from Packer qcow2 |
+| **Boundary worker** | `oci-ansible` | Session proxy so Boundary can reach KubeVirt guest SSH |
+| **ansible-control** (Debian 12) | KubeVirt VM on `oci-ansible` | Ansible control node; playbooks run **here**, not on FCOS |
+| **ansible-target-1** (Debian 12) | KubeVirt VM on `oci-ansible` | `apt` practice target |
+| **ansible-target-2** (AlmaLinux 9) | KubeVirt VM on `oci-ansible` | `dnf` practice target |
+| **Packer** | **Laptop (WSL)** — not an OCI node | Builds Debian 12 and AlmaLinux 9 qcow2; CDI imports them |
+| **oc / virtctl / boundary CLI / helm / oci CLI** | Laptop (WSL) | Cluster admin, bootstrap VM console, brokered SSH, operators, stop/start instances |
+
+
 ## Mindmap
 
 ```mermaid
