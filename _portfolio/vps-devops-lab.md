@@ -1,3 +1,8 @@
+---
+title: Zero-Trust Practice Lab
+description: Three-node OCI OKD + KubeVirt lab with Vault, Boundary, and Service Mesh.
+---
+
 # Zero-Trust Practice Lab — Portfolio Overview
 
 I am building a three-node zero-trust lab on Oracle Cloud Infrastructure as a **compact OKD cluster** (the open-source distribution that underlies Red Hat OpenShift). Identity, workloads, and Ansible planes live on separate nodes with pinned namespaces. **FX Signal Lab** is the flagship app: a CronJob pulls forex data using a Vault-injected API key, a batch Job computes VSA and Bollinger signals, PostgreSQL stores history, and FastAPI serves charts behind an OpenShift Route. Cluster admin uses OIDC; SSH to Ansible VMs is Boundary-brokered; east-west traffic uses Service Mesh mTLS. Instances stop when I am not practicing to control cost.
