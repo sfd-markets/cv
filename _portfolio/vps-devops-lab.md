@@ -1,11 +1,11 @@
 ---
 title: Zero-Trust Practice Lab
-description: Three-node OCI OKD + KubeVirt lab with Vault, Boundary, and Service Mesh.
+description: Three-node OCI OKD + KubeVirt lab with Vault, Boundary, Service Mesh, and native Observe.
 ---
 
 # Zero-Trust Practice Lab — Portfolio Overview
 
-I am building a three-node zero-trust lab on Oracle Cloud Infrastructure as a **compact OKD cluster** (the open-source distribution that underlies Red Hat OpenShift). Identity, workloads, and Ansible planes live on separate nodes with pinned namespaces. **FX Signal Lab** is the flagship app: a CronJob pulls forex data using a Vault-injected API key, a batch Job computes VSA and Bollinger signals, PostgreSQL stores history, and FastAPI serves charts behind an OpenShift Route. Cluster admin uses OIDC; SSH to Ansible VMs is Boundary-brokered; east-west traffic uses Service Mesh mTLS. Instances stop when I am not practicing to control cost.
+I am building a three-node zero-trust lab on Oracle Cloud Infrastructure as a **compact OKD cluster** (the open-source distribution that underlies Red Hat OpenShift). Identity, workloads, and Ansible planes live on separate nodes with pinned namespaces. **FX Signal Lab** is the flagship app: a CronJob pulls forex data using a Vault-injected API key, a batch Job computes VSA and Bollinger signals, PostgreSQL stores history, and FastAPI serves charts behind an OpenShift Route. Cluster admin uses OIDC; SSH to Ansible VMs is Boundary-brokered; east-west traffic uses Service Mesh mTLS. Observability is native OKD: slimmed cluster Prometheus, user-workload scrape of FX and Vault, KubeVirt ServiceMonitors, and short-retention Loki — not a side-car Elastic stack. Instances stop when I am not practicing to control cost.
 
 This is a **target-state design** for a personal lab — not a production environment. Implementation detail lives in [`vps_oci_3node_lab_okd_kubevirt_architecture-v1.md`](vps_oci_3node_lab_okd_kubevirt_architecture-v1.md).
 
@@ -17,6 +17,7 @@ This is a **target-state design** for a personal lab — not a production enviro
 - **HashiCorp stack** — Terraform (`oci` provider), Vault HA, Boundary, Packer guest images
 - **Ansible** — heterogeneous Linux fleet on KubeVirt, not containers pretending to be VMs
 - **Zero-trust patterns** — OIDC for humans, Vault for secrets, Service Mesh mTLS for services
+- **Platform observability** — slim CMO, user-workload Prometheus, Loki/Vector, console Observe
 - **Application platform** — Python/FastAPI pipeline with CronJobs, Jobs, PVCs, and an external API
 
 
@@ -27,7 +28,7 @@ Three AMD x86 `VM.Standard.E4.Flex` instances (4 OCPU / 32 GB / 200 GB each) in 
 | Plane | Node | Role |
 | ----- | ---- | ---- |
 | **Identity & trust** | `oci-identity` | Secrets, identity, and mesh control — Vault, Boundary controller, Keycloak (OIDC), istiod |
-| **Applications** | `oci-workloads` | FX Signal Lab — fetcher, analyzer, API, PostgreSQL, mesh sidecars |
+| **Applications** | `oci-workloads` | FX Signal Lab — fetcher, analyzer, API, PostgreSQL, mesh sidecars, UWM Prometheus, LokiStack |
 | **Automation fleet** | `oci-ansible` | KubeVirt guests (Debian control + Debian/Alma targets) and a Boundary worker |
 
 This split mirrors production thinking: security-critical services stay off the application blast radius, and the Ansible practice fleet stays off application pods.
@@ -58,8 +59,16 @@ All three nodes are `VM.Standard.E4.Flex` (4 OCPU / 32 GB / 200 GB). User worklo
 | **ansible-control** (Debian 12) | KubeVirt VM on `oci-ansible` | Ansible control node; playbooks run **here**, not on FCOS |
 | **ansible-target-1** (Debian 12) | KubeVirt VM on `oci-ansible` | `apt` practice target |
 | **ansible-target-2** (AlmaLinux 9) | KubeVirt VM on `oci-ansible` | `dnf` practice target |
+| **CMO / node-exporter / kube-state-metrics** | All three (platform Prometheus slimmed) | Native cluster metrics; node-exporter DaemonSet |
+| **User-workload Prometheus** | `oci-workloads` | Scrapes Vault, FX, Boundary/Keycloak ServiceMonitors |
+| **LokiStack** | `oci-workloads` | Short-retention logs |
+| **Vector** | All three (DaemonSet) | Ships logs to Loki |
+| **postgres_exporter / fx-api `/metrics`** | `oci-workloads` (`fx-lab`) | App and database SLIs |
+| **Vault Prometheus telemetry** | `oci-identity` (`vault` ns) | Scraped by user-workload Prometheus |
+| **KubeVirt `/metrics` :8443** | `oci-ansible` (`virt-*`) | Native ServiceMonitor → platform Prometheus |
+| **qemu-guest-agent** | KubeVirt VMs on `oci-ansible` | Guest memory/IP via hypervisor metrics |
 | **Packer** | **Laptop (WSL)** — not an OCI node | Builds Debian 12 and AlmaLinux 9 qcow2; CDI imports them |
-| **oc / virtctl / boundary CLI / helm / oci CLI** | Laptop (WSL) | Cluster admin, bootstrap VM console, brokered SSH, operators, stop/start instances |
+| **oc / virtctl / boundary CLI / helm / oci CLI** | Laptop (WSL) | Cluster admin, Observe, bootstrap VM console, brokered SSH, operators, stop/start instances |
 
 
 ## Mindmap
@@ -83,6 +92,8 @@ mindmap
       fx_api
       PostgreSQL
       Mesh_sidecars
+      UWM_Prometheus
+      LokiStack
     Ansible
       KubeVirt_CDI
       Debian_control
@@ -92,6 +103,12 @@ mindmap
       Compact_cluster
       FCOS_Ignition
       Routes
+      Vector_DaemonSet
+    Observability
+      Console_Observe
+      Slim_CMO
+      User_workload_monitors
+      Loki_short_retention
     ZT_triangle
       Vault_secrets
       Boundary_plus_OIDC
@@ -101,9 +118,9 @@ mindmap
 
 ## Topology
 
-North-south: my laptop authenticates to **OKD OAuth** (OIDC) for cluster admin and to **Boundary** for SSH into KubeVirt guests. FX Signal Lab is reached via an OpenShift Route. Public SSH is closed; API, OAuth, and Boundary are limited to a home IP.
+North-south: my laptop authenticates to **OKD OAuth** (OIDC) for cluster admin, console **Observe**, and to **Boundary** for SSH into KubeVirt guests. FX Signal Lab is reached via an OpenShift Route. Public SSH is closed; API, OAuth, Boundary, and Observe are limited to a home IP. Observe uses the same console Route — no extra public Grafana port.
 
-East-west: FX pods pull secrets from Vault on the identity node over the private VCN. Mesh policies on identity apply to sidecars on workloads. Ansible SSH never crosses into `fx-lab` — guests are scheduled only on the ansible node.
+East-west: FX pods pull secrets from Vault on the identity node over the private VCN. Mesh policies on identity apply to sidecars on workloads. Ansible SSH never crosses into `fx-lab` — guests are scheduled only on the ansible node. Vector ships logs from all nodes to Loki on workloads. KubeVirt `/metrics` on ansible are scraped by platform Prometheus (CMO).
 
 Build-time: Terraform provisions the three instances and VCN. OKD installs on Fedora CoreOS via Ignition. Packer builds guest disks that CDI/KubeVirt consumes.
 
@@ -124,6 +141,8 @@ flowchart TB
       route[Route]
       pg[(PostgreSQL)]
       meshD[Mesh_sidecars]
+      uwm[UWM_Prometheus]
+      loki[LokiStack]
     end
 
     subgraph an [oci_ansible]
@@ -132,9 +151,12 @@ flowchart TB
       targets[Debian_and_Alma_VMs]
       bW[Boundary_worker]
     end
+
+    cmo[Slim_CMO_platform_Prometheus]
+    vector[Vector_DaemonSet]
   end
 
-  laptop -->|"OIDC plus oc"| oauth
+  laptop -->|"OIDC plus oc Observe"| oauth
   laptop -->|"Boundary"| boundary
   laptop -->|"browser"| route
 
@@ -148,6 +170,49 @@ flowchart TB
   meshD -->|"mTLS fx-api only"| pg
   route --> fx
   ctrl -->|"Ansible SSH"| targets
+  kv -->|"native ServiceMonitor"| cmo
+  fx -->|"ServiceMonitors"| uwm
+  vault -->|"telemetry scrape"| uwm
+  vector --> loki
+  cmo --> oauth
+  uwm --> oauth
+  loki --> oauth
+```
+
+
+## Observability
+
+Native OKD Observe — not Elastic, kube-prometheus-stack, or a second Grafana. Collectors run on every node; Prometheus and Loki **stores pin to the workloads plane** so identity does not host the TSDB. Cluster Monitoring Operator (CMO) scrapes platform and KubeVirt metrics. User-workload Prometheus scrapes Vault and FX ServiceMonitors. Vector ships logs to Loki with hours of retention. After each stop/start, metrics and logs start at **session zero**.
+
+| Signal | Where it lands | What I can show |
+| ------ | -------------- | --------------- |
+| **Platform** | Slim CMO Prometheus (all nodes collect; store is cluster CMO) | Node, etcd, API, kube-state; KubeVirt `virt-*` `/metrics` |
+| **Apps and Vault** | User-workload Prometheus on `oci-workloads` | `fx-api` `/metrics`, postgres_exporter, Vault telemetry |
+| **Logs** | Vector DaemonSet → LokiStack on `oci-workloads` | Session-scoped queries in console Observe |
+
+```mermaid
+flowchart LR
+  subgraph collect [Collectors]
+    ne[node_exporter_all_nodes]
+    kv[kubevirt_metrics_8443]
+    exp[Vault_PG_FX_ServiceMonitors]
+    vec[Vector_DaemonSet]
+  end
+  subgraph backend [Backends_on_workloads]
+    plat[Slim_Prometheus_CMO]
+    uwm[User_workload_Prometheus]
+    loki[LokiStack]
+  end
+  subgraph ui [North_south]
+    cons[OKD_console_Observe]
+  end
+  ne --> plat
+  kv --> plat
+  exp --> uwm
+  vec --> loki
+  plat --> cons
+  uwm --> cons
+  loki --> cons
 ```
 
 
@@ -159,7 +224,7 @@ A bounded forex analytics platform — not a throwaway nginx demo. It shows batc
 | --------- | ---- | -------------- |
 | **fx-fetcher** | CronJob | Pull 30-minute OHLCV bars from Polygon.io onto a shared PVC |
 | **fx-analyzer** | Job | Volume Spread Analysis and Bollinger Band signals → PostgreSQL and Plotly charts |
-| **fx-api** | Deployment | FastAPI — health, signals, and charts |
+| **fx-api** | Deployment | FastAPI — health, signals, charts, and `/metrics` |
 | **postgresql** | StatefulSet | Signal history |
 | **Route** | OpenShift Route | `fx.<lab-domain>` → `fx-api` |
 
@@ -200,13 +265,14 @@ flowchart LR
 
 ## Zero-trust model
 
-Vault governs *what credentials exist*. Boundary plus OKD OAuth govern *who may access what*. The mesh governs *which services may communicate*.
+Vault governs *what credentials exist*. Boundary plus OKD OAuth govern *who may access what*. The mesh governs *which services may communicate*. Native Observe handles **detection** (metrics, logs, alerts) without a fourth product in the trust triangle.
 
 | Pillar | Product | Lab implementation |
 | ------ | ------- | ------------------ |
 | **Verify explicitly** | OKD OAuth + Boundary + OIDC | Every admin session authenticated; no anonymous SSH |
 | **Least privilege** | RBAC / SCC + Boundary + Vault | Scoped targets; ephemeral SSH credentials from Vault |
 | **Assume breach** | Segregated planes | Vault on identity; apps on workloads; Ansible VMs on ansible |
+| **Detect** | Slim CMO + UWM + Loki | Platform alerts, FX/Vault SLIs, KubeVirt VMI metrics, session-scoped logs in Observe |
 | **Micro-segmentation** | OpenShift Service Mesh | mTLS between `fx-api` and PostgreSQL; default-deny policies |
 | **Secrets** | Vault HA | API key and dynamic DB credentials — never in git |
 | **Edge** | OCI NSGs | API / OAuth / Boundary from home IP only; public SSH denied |
@@ -265,6 +331,7 @@ sequenceDiagram
   participant PG as PostgreSQL
   participant API as fx_api
   participant Mesh as Service_Mesh
+  participant Obs as Console_Observe
 
   You->>OAuth: OIDC login
   You->>B: authenticate OIDC
@@ -279,6 +346,9 @@ sequenceDiagram
   API->>Mesh: connect to postgresql
   Mesh-->>PG: mTLS allow fx-api only
   API-->>You: Plotly HTML
+
+  You->>Obs: same OIDC session
+  Note over Obs: FX SLIs, Vault scrape, KubeVirt VMI, Loki
 
   You->>B: connect ssh ansible-control
   Note over B: Worker on ansible node reaches KubeVirt VMs
@@ -301,6 +371,7 @@ flowchart TB
     vault[Vault]
     boundary[Boundary]
     mesh[Service_Mesh]
+    obs[Slim_CMO_UWM_Loki]
   end
 
   ignition --> runTime
@@ -312,7 +383,7 @@ flowchart TB
 | **Infrastructure** | Terraform | Three Flex instances, VCN, NSGs |
 | **Cluster** | OKD + Ignition | Compact three-node Fedora CoreOS cluster |
 | **Guest images** | Packer | Debian 12 and AlmaLinux 9 qcow2 → CDI |
-| **Configuration** | Operators / Helm / Ansible | Vault, Boundary, mesh, `fx-lab`, KubeVirt VMs |
+| **Configuration** | Operators / Helm / Ansible | Vault, Boundary, mesh, `fx-lab`, KubeVirt VMs, slim CMO, UWM, LokiStack |
 
 
 ## Inputs to outcomes
@@ -340,6 +411,7 @@ flowchart LR
     o3[Charts_on_Route]
     o4[Mesh_denies_non_fx_api]
     o5[Boundary_SSH_to_VMs]
+    o6[Observe_metrics_and_logs]
   end
 
   homeIP --> okd
@@ -353,6 +425,7 @@ flowchart LR
   zt --> o3
   zt --> o4
   zt --> o5
+  zt --> o6
 ```
 
 
@@ -366,6 +439,9 @@ flowchart LR
 | **Vault** | Identity hub | HA, Kubernetes auth, dynamic DB credentials |
 | **Boundary** | Controller on identity; worker on ansible | Identity-brokered SSH — no standing host keys |
 | **Service Mesh** | istiod on identity; sidecars on workloads | mTLS between `fx-api` and PostgreSQL |
+| **Cluster Monitoring (CMO)** | All three nodes (slimmed) | Platform Prometheus, node-exporter, KubeVirt ServiceMonitors, console Observe |
+| **User-workload Prometheus** | Workloads hub | Scrapes Vault, `fx-api` `/metrics`, postgres_exporter |
+| **LokiStack + Vector** | Loki on workloads; Vector on all nodes | Short-retention logs; session-zero after stop/start |
 | **Terraform** | Identity plane | Instances, VCN, NSGs |
 | **Packer** | Laptop | Guest qcow2 for KubeVirt |
 | **Ansible** | KubeVirt VMs | Heterogeneous `apt` vs `dnf` automation |
@@ -375,5 +451,6 @@ flowchart LR
 
 - **Paid x86 Flex, not Always Free Ampere.** Compact OKD needs comparable RAM on every node; ARM Always Free shapes are out of scope.
 - **etcd spans all three nodes.** Plane isolation is for *user* workloads. Losing any node still affects control-plane quorum.
-- **Stop-when-idle.** Compute bills while instances run; block volumes bill always-on. Cold start after stop is slower than a Kind lab.
+- **Stop-when-idle.** Compute bills while instances run; block volumes bill always-on. Cold start after stop is slower than a Kind lab. Prometheus and Loki are empty after start (**session-zero**).
+- **Slim observability on 32 GB.** Uncapped CMO, HA Loki, Elastic, a second Grafana, or Jaeger/Tempo are out of scope.
 - **Nested KVM.** KubeVirt needs hardware virtualization on the ansible node; emulation is not the daily path.
